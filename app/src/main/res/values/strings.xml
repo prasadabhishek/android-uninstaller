@@ -1,0 +1,18 @@
+<resources>
+    <string name="app_name">Bulk Uninstaller</string>
+    <string name="search_placeholder">Search apps...</string>
+    <string name="settings_title">Settings</string>
+    <string name="uninstall_confirm_title">Uninstall %d apps?</string>
+    <string name="uninstall_success_title">Uninstall Complete</string>
+    <string name="apps_uninstalled">%d apps uninstalled</string>
+    <string name="freed_size">%s freed</string>
+    <string name="cancel">Cancel</string>
+    <string name="uninstall">Uninstall</string>
+    <string name="done">Done</string>
+    <string name="system_app_info">System app — cannot be uninstalled</string>
+    <string name="ok">OK</string>
+    <string name="show_system_apps">Show system apps</string>
+    <string name="default_sort">Default sort</string>
+    <string name="version_info">Version %s</string>
+    <string name="accessibility_service_description">Automatically confirms uninstall prompts when you perform a batch uninstall in Bulk Uninstaller.</string>
+</resources>
