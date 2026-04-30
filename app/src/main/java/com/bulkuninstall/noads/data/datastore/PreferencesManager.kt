@@ -22,6 +22,8 @@ class PreferencesManager @Inject constructor(
 ) {
     private val SHOW_SYSTEM_APPS = booleanPreferencesKey("show_system_apps")
     private val DEFAULT_SORT = stringPreferencesKey("default_sort")
+    private val SUPERPOWER_CARD_DISMISSED = booleanPreferencesKey("superpower_card_dismissed")
+    private val USAGE_ACCESS_CARD_DISMISSED = booleanPreferencesKey("usage_access_card_dismissed")
 
     val showSystemApps: Flow<Boolean> = context.dataStore.data.map { preferences ->
         preferences[SHOW_SYSTEM_APPS] ?: false
@@ -30,6 +32,14 @@ class PreferencesManager @Inject constructor(
     val defaultSort: Flow<SortType> = context.dataStore.data.map { preferences ->
         val sortName = preferences[DEFAULT_SORT] ?: SortType.NAME.name
         SortType.valueOf(sortName)
+    }
+
+    val superpowerCardDismissed: Flow<Boolean> = context.dataStore.data.map { preferences ->
+        preferences[SUPERPOWER_CARD_DISMISSED] ?: false
+    }
+
+    val usageAccessCardDismissed: Flow<Boolean> = context.dataStore.data.map { preferences ->
+        preferences[USAGE_ACCESS_CARD_DISMISSED] ?: false
     }
 
     suspend fun updateShowSystemApps(show: Boolean) {
@@ -41,6 +51,25 @@ class PreferencesManager @Inject constructor(
     suspend fun updateDefaultSort(sortType: SortType) {
         context.dataStore.edit { preferences ->
             preferences[DEFAULT_SORT] = sortType.name
+        }
+    }
+
+    suspend fun dismissSuperpowerCard() {
+        context.dataStore.edit { preferences ->
+            preferences[SUPERPOWER_CARD_DISMISSED] = true
+        }
+    }
+
+    suspend fun dismissUsageAccessCard() {
+        context.dataStore.edit { preferences ->
+            preferences[USAGE_ACCESS_CARD_DISMISSED] = true
+        }
+    }
+
+    suspend fun showAllPermissionCards() {
+        context.dataStore.edit { preferences ->
+            preferences[SUPERPOWER_CARD_DISMISSED] = false
+            preferences[USAGE_ACCESS_CARD_DISMISSED] = false
         }
     }
 }

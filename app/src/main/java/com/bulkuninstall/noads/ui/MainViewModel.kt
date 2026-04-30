@@ -25,7 +25,9 @@ data class MainUiState(
     val activeSort: SortType = SortType.NAME,
     val isLoading: Boolean = false,
     val isAccessibilityServiceEnabled: Boolean = false,
-    val isUsageAccessEnabled: Boolean = false
+    val isUsageAccessEnabled: Boolean = false,
+    val superpowerCardDismissed: Boolean = false,
+    val usageAccessCardDismissed: Boolean = false
 )
 
 @HiltViewModel
@@ -40,9 +42,23 @@ class MainViewModel @Inject constructor(
 
     init {
         observeSettings()
+        observePermissionCards()
         refreshApps()
         checkAccessibilityService()
         checkUsageAccess()
+    }
+
+    private fun observePermissionCards() {
+        viewModelScope.launch {
+            preferencesManager.superpowerCardDismissed.collect { dismissed ->
+                _uiState.update { it.copy(superpowerCardDismissed = dismissed) }
+            }
+        }
+        viewModelScope.launch {
+            preferencesManager.usageAccessCardDismissed.collect { dismissed ->
+                _uiState.update { it.copy(usageAccessCardDismissed = dismissed) }
+            }
+        }
     }
 
     fun checkUsageAccess() {
@@ -117,6 +133,24 @@ class MainViewModel @Inject constructor(
 
     fun clearSelection() {
         _uiState.update { it.copy(selectedPackages = emptySet()) }
+    }
+
+    fun dismissSuperpowerCard() {
+        viewModelScope.launch {
+            preferencesManager.dismissSuperpowerCard()
+        }
+    }
+
+    fun dismissUsageAccessCard() {
+        viewModelScope.launch {
+            preferencesManager.dismissUsageAccessCard()
+        }
+    }
+
+    fun showPermissionCards() {
+        viewModelScope.launch {
+            preferencesManager.showAllPermissionCards()
+        }
     }
 
     private fun applyFilters() {

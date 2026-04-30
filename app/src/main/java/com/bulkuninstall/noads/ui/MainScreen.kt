@@ -12,8 +12,13 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.List
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.FilterList
+import androidx.compose.material.icons.filled.History
+import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Security
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -89,10 +94,20 @@ fun MainScreen(viewModel: MainViewModel) {
     val coroutineScope = rememberCoroutineScope()
 
     var showSortMenu by remember { mutableStateOf(false) }
+    var showUsageAccessSnackbar by remember { mutableStateOf(false) }
+    val snackbarHostState = remember { SnackbarHostState() }
+
+    LaunchedEffect(showUsageAccessSnackbar) {
+        if (showUsageAccessSnackbar) {
+            kotlinx.coroutines.delay(4000)
+            showUsageAccessSnackbar = false
+        }
+    }
 
     Scaffold(
         modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
         containerColor = BackgroundObsidian,
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             MediumTopAppBar(
                 title = { 
@@ -105,6 +120,26 @@ fun MainScreen(viewModel: MainViewModel) {
                     ) 
                 },
                 actions = {
+                    var showMenu by remember { mutableStateOf(false) }
+                    IconButton(onClick = { showMenu = true }) {
+                        Icon(Icons.Default.MoreVert, contentDescription = "Menu", tint = TextSecondary)
+                    }
+                    DropdownMenu(
+                        expanded = showMenu,
+                        onDismissRequest = { showMenu = false },
+                        modifier = Modifier.background(SurfaceDark)
+                    ) {
+                        DropdownMenuItem(
+                            text = { Text("Show Permission Cards", color = TextPrimary) },
+                            onClick = {
+                                viewModel.showPermissionCards()
+                                showMenu = false
+                            },
+                            leadingIcon = {
+                                Icon(Icons.Default.Security, contentDescription = null, tint = CyberCyan)
+                            }
+                        )
+                    }
                     IconButton(onClick = { showSortMenu = true }) {
                         Icon(Icons.Default.FilterList, contentDescription = "Sort", tint = CyberCyan)
                     }
@@ -113,15 +148,31 @@ fun MainScreen(viewModel: MainViewModel) {
                         onDismissRequest = { showSortMenu = false },
                         modifier = Modifier.background(SurfaceDark)
                     ) {
-                        com.bulkuninstall.noads.data.model.SortType.entries.forEach { sortType ->
+                        var showUsageAccessSnackbar by remember { mutableStateOf(false) }
+
+                        val availableSortOptions = com.bulkuninstall.noads.data.model.SortType.entries
+                        availableSortOptions.forEach { sortType ->
+                            val isLastUsedSort = sortType == com.bulkuninstall.noads.data.model.SortType.LAST_USED_NEW ||
+                                                 sortType == com.bulkuninstall.noads.data.model.SortType.LAST_USED_OLD
+                            val isDisabled = isLastUsedSort && !uiState.isUsageAccessEnabled
+
                             DropdownMenuItem(
-                                text = { Text(sortType.displayName, color = TextPrimary) },
+                                text = { Text(sortType.displayName, color = if (isDisabled) TextSecondary else TextPrimary) },
                                 onClick = {
-                                    viewModel.onSortChange(sortType)
-                                    showSortMenu = false
+                                    if (isDisabled) {
+                                        showUsageAccessSnackbar = true
+                                    } else {
+                                        viewModel.onSortChange(sortType)
+                                        showSortMenu = false
+                                    }
+                                },
+                                leadingIcon = {
+                                    if (isDisabled) {
+                                        Icon(Icons.Default.Lock, contentDescription = null, tint = TextSecondary, modifier = Modifier.size(18.dp))
+                                    } else null
                                 },
                                 trailingIcon = {
-                                    if (uiState.activeSort == sortType) {
+                                    if (uiState.activeSort == sortType && !isDisabled) {
                                         Icon(Icons.Default.Refresh, contentDescription = null, tint = CyberCyan, modifier = Modifier.size(16.dp))
                                     }
                                 }
@@ -154,7 +205,7 @@ fun MainScreen(viewModel: MainViewModel) {
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
             )
 
-            if (!uiState.isAccessibilityServiceEnabled) {
+            if (!uiState.isAccessibilityServiceEnabled && !uiState.superpowerCardDismissed) {
                 Card(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -166,21 +217,30 @@ fun MainScreen(viewModel: MainViewModel) {
                     shape = RoundedCornerShape(16.dp)
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Box(
-                                modifier = Modifier
-                                    .size(28.dp)
-                                    .background(CyberCyan.copy(alpha = 0.2f), CircleShape),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Icon(Icons.Default.Refresh, contentDescription = null, tint = CyberCyan, modifier = Modifier.size(16.dp))
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(28.dp)
+                                        .background(CyberCyan.copy(alpha = 0.2f), CircleShape),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(Icons.Default.Refresh, contentDescription = null, tint = CyberCyan, modifier = Modifier.size(16.dp))
+                                }
+                                Spacer(modifier = Modifier.width(10.dp))
+                                Text(
+                                    text = "Enable Superpower Permission",
+                                    style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
+                                    color = CyberCyan
+                                )
                             }
-                            Spacer(modifier = Modifier.width(10.dp))
-                            Text(
-                                text = "Superpower Active",
-                                style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
-                                color = CyberCyan
-                            )
+                            IconButton(onClick = { viewModel.dismissSuperpowerCard() }) {
+                                Icon(Icons.Default.Close, contentDescription = "Dismiss", tint = TextSecondary, modifier = Modifier.size(20.dp))
+                            }
                         }
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
@@ -204,25 +264,47 @@ fun MainScreen(viewModel: MainViewModel) {
                 }
             }
 
-            if (!uiState.isUsageAccessEnabled && (uiState.activeSort == com.bulkuninstall.noads.data.model.SortType.LAST_USED_NEW || uiState.activeSort == com.bulkuninstall.noads.data.model.SortType.LAST_USED_OLD)) {
+            if (!uiState.isUsageAccessEnabled && !uiState.usageAccessCardDismissed) {
                 Card(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(16.dp),
+                        .padding(horizontal = 16.dp, vertical = 6.dp)
+                        .border(1.dp, PremiumGradient, RoundedCornerShape(16.dp)),
                     colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceVariant
-                    )
+                        containerColor = GlowCyan.copy(alpha = 0.05f)
+                    ),
+                    shape = RoundedCornerShape(16.dp)
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
-                        Text(
-                            text = "Usage Access Required",
-                            style = MaterialTheme.typography.titleMedium,
-                            color = MaterialTheme.colorScheme.primary
-                        )
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(28.dp)
+                                        .background(CyberCyan.copy(alpha = 0.2f), CircleShape),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(Icons.Default.History, contentDescription = null, tint = CyberCyan, modifier = Modifier.size(16.dp))
+                                }
+                                Spacer(modifier = Modifier.width(10.dp))
+                                Text(
+                                    text = "Enable Usage Access",
+                                    style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
+                                    color = CyberCyan
+                                )
+                            }
+                            IconButton(onClick = { viewModel.dismissUsageAccessCard() }) {
+                                Icon(Icons.Default.Close, contentDescription = "Dismiss", tint = TextSecondary, modifier = Modifier.size(20.dp))
+                            }
+                        }
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
-                            text = "Grant Usage Access to enable sorting apps by how recently they were used.",
-                            style = MaterialTheme.typography.bodyMedium
+                            text = "Grant Usage Access to sort apps by how recently they were used.",
+                            style = MaterialTheme.typography.labelMedium.copy(color = TextSecondary)
                         )
                         Spacer(modifier = Modifier.height(8.dp))
                         Button(
@@ -236,9 +318,12 @@ fun MainScreen(viewModel: MainViewModel) {
                                     context.startActivity(Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS))
                                 }
                             },
-                            modifier = Modifier.align(Alignment.End)
+                            modifier = Modifier.height(40.dp).fillMaxWidth(),
+                            colors = ButtonDefaults.buttonColors(containerColor = CyberCyan),
+                            shape = RoundedCornerShape(10.dp),
+                            contentPadding = PaddingValues(0.dp)
                         ) {
-                            Text("Grant Access")
+                            Text("Grant Access", color = Color.Black, style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold))
                         }
                     }
                 }
